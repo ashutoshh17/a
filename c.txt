@@ -1,0 +1,1134 @@
+SECURITY IN COMPUTING PRACTICALS - STEP-BY-STEP COMMANDS
+T.Y.B.SC. (IT) SEM VI - PAPER RJSUITP602
+DATE: March 08, 2025
+
+---
+
+PREREQUISITES:
+- Install Cisco Packet Tracer on your computer.
+- Basic CLI navigation: 'en' (enable mode), 'conf t' (config mode), 'end' (exit config).
+- Use this document with Packet Tracer to build topologies and run commands.
+- Refer to the original PDF for detailed topology diagrams if needed.
+
+---
+
+PRACTICAL 1 - CONFIGURE ROUTERS
+Topology: R1 <-> R2 <-> R3 with PCs and switches
+IP Table:
+Device    Interface  IP Address      Subnet Mask      Default Gateway  Switch Port
+R1        S0/1/0     10.1.1.1        255.255.255.252  -                S1 Fa0/3
+R1        G0/0       192.168.1.1     255.255.255.0    -                -
+R2        S0/1/0     10.1.1.2        255.255.255.252  -                -
+R2        S0/1/1     10.2.2.2        255.255.255.252  -                -
+R3        G0/0       192.168.3.1     255.255.255.0    -                S2 Fa0/2
+R3        S0/1/1     10.2.2.1        255.255.255.252  -                -
+PC-A      -          192.168.1.5     255.255.255.0    192.168.1.1      S1 Fa0/1
+PC-B      -          192.168.1.6     255.255.255.0    192.168.1.1      S1 Fa0/2
+PC-C      -          192.168.3.5     255.255.255.0    192.168.3.1      S2 Fa0/1
+
+Setup Topology in Packet Tracer:
+- Add 3 routers (R1, R2, R3), 2 switches (S1, S2), 3 PCs (PC-A, PC-B, PC-C).
+- Connect: R1 S0/1/0 to R2 S0/1/0, R2 S0/1/1 to R3 S0/1/1.
+- Connect: PC-A to S1 Fa0/1, PC-B to S1 Fa0/2, S1 Fa0/3 to R1 G0/0.
+- Connect: PC-C to S2 Fa0/1, S2 Fa0/2 to R3 G0/0.
+- Assign IPs to PCs via Desktop > IP Configuration.
+
+Initial Router Configuration (R1, R2, R3):
+1. Virtual Terminal Password Setup
+   R1>en
+   R1#conf t
+   R1(config)#line vty 0 4
+   R1(config-line)#password ciscovtypa55
+   R1(config-line)#login
+   R1(config-line)#end
+   [Repeat for R2 and R3]
+
+2. Enable Password Setup
+   R1>enable
+   R1#conf t
+   R1(config)#enable password ciscoenpa55
+   R1(config)#exit
+   [Repeat for R2 and R3]
+
+3. Console Password Setup
+   R1>en
+   R1#conf t
+   R1(config)#line console 0
+   R1(config-line)#password ciscoconapa55
+   R1(config-line)#login
+   R1(config-line)#end
+   [Repeat for R2 and R3]
+
+4. Interface Configuration
+   R1:
+   R1#conf t
+   R1(config)#interface s0/1/0
+   R1(config-if)#ip address 10.1.1.1 255.255.255.252
+   R1(config-if)#no shutdown
+   R1(config-if)#exit
+   R1(config)#interface g0/0
+   R1(config-if)#ip address 192.168.1.1 255.255.255.0
+   R1(config-if)#no shutdown
+   R1(config-if)#end
+
+   R2:
+   R2#conf t
+   R2(config)#interface s0/1/0
+   R2(config-if)#ip address 10.1.1.2 255.255.255.252
+   R2(config-if)#no shutdown
+   R2(config-if)#exit
+   R2(config)#interface s0/1/1
+   R2(config-if)#ip address 10.2.2.2 255.255.255.252
+   R2(config-if)#no shutdown
+   R2(config-if)#end
+
+   R3:
+   R3#conf t
+   R3(config)#interface g0/0
+   R3(config-if)#ip address 192.168.3.1 255.255.255.0
+   R3(config-if)#no shutdown
+   R3(config-if)#exit
+   R3(config)#interface s0/1/1
+   R3(config-if)#ip address 10.2.2.1 255.255.255.252
+   R3(config-if)#no shutdown
+   R3(config-if)#end
+
+5. Configure OSPF
+   R1:
+   R1#conf t
+   R1(config)#router ospf 2
+   R1(config-router)#network 10.1.1.0 0.0.0.3 area 0
+   R1(config-router)#network 192.168.1.0 0.0.0.255 area 0
+   R1(config-router)#end
+
+   R2:
+   R2#conf t
+   R2(config)#router ospf 2
+   R2(config-router)#network 10.1.1.0 0.0.0.3 area 0
+   R2(config-router)#network 10.2.2.0 0.0.0.3 area 0
+   R2(config-router)#end
+
+   R3:
+   R3#conf t
+   R3(config)#router ospf 2
+   R3(config-router)#network 10.2.2.0 0.0.0.3 area 0
+   R3(config-router)#network 192.168.3.0 0.0.0.255 area 0
+   R3(config-router)#end
+
+Part 1: Configure OSPF MD5 Authentication
+1. Test Connectivity
+   PC-A>ping 192.168.3.5  [Should succeed]
+
+2. Configure OSPF MD5 Authentication (Area 0)
+   R1:
+   R1#conf t
+   R1(config)#router ospf 2
+   R1(config-router)#area 0 authentication message-digest
+   R1(config-router)#exit
+   R1(config)#interface s0/1/0
+   R1(config-if)#ip ospf message-digest-key 1 md5 MD5pa55
+   R1(config-if)#end
+
+   R2:
+   R2#conf t
+   R2(config)#router ospf 2
+   R2(config-router)#area 0 authentication message-digest
+   R2(config-router)#exit
+   R2(config)#interface s0/1/0
+   R2(config-if)#ip ospf message-digest-key 1 md5 MD5pa55
+   R2(config-if)#exit
+   R2(config)#interface s0/1/1
+   R2(config-if)#ip ospf message-digest-key 1 md5 MD5pa55
+   R2(config-if)#end
+
+   R3:
+   R3#conf t
+   R3(config)#router ospf 2
+   R3(config-router)#area 0 authentication message-digest
+   R3(config-router)#exit
+   R3(config)#interface s0/1/1
+   R3(config-if)#ip ospf message-digest-key 1 md5 MD5pa55
+   R3(config-if)#end
+
+3. Verify Configurations
+   R1#show ip ospf interface  [Expect MD5 authentication enabled]
+   PC-A>ping 192.168.3.5  [Verify connectivity]
+
+Part 2: Configure NTP
+1. Enable NTP Authentication on PC-A
+   [PC-A > Desktop > Services > NTP]
+   - Check 'NTP Service: On'
+   - Click 'Enable' under Authentication
+   - Set Key: 1, Password: NTPpa55
+
+2. Configure R1, R2, R3 as NTP Clients
+   R1#conf t
+   R1(config)#ntp server 192.168.1.5
+   R1(config)#end
+   [Repeat for R2 and R3]
+
+3. Verify NTP Client Configuration
+   R1#show ntp status  [Expect synchronized status]
+   [Repeat for R2 and R3]
+
+4. Update Hardware Clock
+   R1#conf t
+   R1(config)#ntp update-calendar
+   R1(config)#end
+   R1#show clock  [Check updated time]
+   [Repeat for R2 and R3]
+
+5. Configure NTP Authentication on Routers
+   R1#conf t
+   R1(config)#ntp authenticate
+   R1(config)#ntp authentication-key 1 md5 NTPpa55
+   R1(config)#ntp trusted-key 1
+   R1(config)#end
+   [Repeat for R2 and R3]
+
+6. Configure Timestamp for Logs
+   R1#conf t
+   R1(config)#service timestamps log datetime
+   R1(config)#end
+   [Repeat for R2 and R3]
+
+Part 3: Configure Syslog
+1. Configure Syslog Server (PC-B: 192.168.1.6)
+   R1#conf t
+   R1(config)#logging host 192.168.1.6
+   R1(config)#end
+   [Repeat for R2 and R3]
+
+2. Verify Logging Configuration
+   R1#show logging  [Expect syslog server listed]
+   [Repeat for R2 and R3]
+
+3. Examine Syslog Messages
+   [PC-B > Desktop > Services > Syslog]
+   - Enter/exit config mode on R1 (e.g., R1#conf t, R1(config)#end) to generate logs
+
+Part 4: Configure SSH on R3
+1. Configure Domain Name
+   R3#conf t
+   R3(config)#ip domain-name ccnasecurity.com
+   R3(config)#end
+
+2. Configure User
+   R3#conf t
+   R3(config)#username SSHadmin privilege 15 secret ciscosshpa55
+   R3(config)#end
+
+3. Configure VTY Lines
+   R3#conf t
+   R3(config)#line vty 0 4
+   R3(config-line)#login local
+   R3(config-line)#transport input ssh
+   R3(config-line)#end
+
+4. Erase Existing Keys
+   R3#crypto key zeroize rsa  [Ignore if no keys exist]
+
+5. Generate RSA Keys
+   R3#conf t
+   R3(config)#crypto key generate rsa
+   [Name: R3.ccnasecurity.com, Modulus: 1024]
+   R3(config)#end
+
+6. Verify SSH Configuration
+   R3#show ip ssh  [Expect version 1.99, timeout 120]
+
+7. Adjust SSH Parameters
+   R3#conf t
+   R3(config)#ip ssh timeout 90
+   R3(config)#ip ssh authentication-retries 2
+   R3(config)#ip ssh version 2
+   R3(config)#end
+   R3#show ip ssh  [Expect timeout 90, retries 2, version 2]
+
+8. Test Telnet (Should Fail)
+   PC-C>telnet 192.168.3.1
+
+9. Test SSH from PC-C
+   PC-C>ssh -l SSHadmin 192.168.3.1
+   [Password: ciscosshpa55]
+
+10. Test SSH from R2
+    R2#ssh -l SSHadmin -v 2 192.168.3.1
+    [Password: ciscosshpa55]
+
+11. Check Results
+    [Packet Tracer: Click 'Check Results' for 100% completion]
+
+Troubleshooting:
+- If ping fails: Check IPs (show ip interface brief) and interface status.
+- If SSH fails: Verify RSA keys (show ip ssh) and VTY config (show run | section line vty).
+
+---
+
+PRACTICAL 2 - CONFIGURE AAA AUTHENTICATION ON CISCO ROUTERS
+Topology: R1 <-> R2 <-> R3 with TACACS+ and RADIUS servers
+IP Table:
+Device     Interface  IP Address      Subnet Mask      Default Gateway  Switch Port
+R1         G0/0       192.168.1.1     255.255.255.0    -                S1 Fa0/2
+R1         S0/0/0     10.1.1.2        255.255.255.252  -                -
+R2         G0/0       192.168.2.1     255.255.255.0    -                S2 Fa0/3
+R2         S0/0/0     10.1.1.1        255.255.255.252  -                -
+R2         S0/0/1     20.2.2.1        255.255.255.252  -                -
+R3         G0/0       192.168.3.1     255.255.255.0    -                S3 Fa0/3
+R3         S0/0/0     20.2.2.2        255.255.255.252  -                -
+TACACS+    -          192.168.2.3     255.255.255.0    192.168.2.1      S2 Fa0/1
+RADIUS     -          192.168.3.3     255.255.255.0    192.168.3.1      S3 Fa0/2
+PC-A       -          192.168.1.2     255.255.255.0    192.168.1.1      S1 Fa0/1
+PC-B       -          192.168.2.2     255.255.255.0    192.168.2.1      S1 Fa0/2
+PC-C       -          192.168.3.2     255.255.255.0    192.168.3.1      S3 Fa0/1
+
+Setup Topology in Packet Tracer:
+- Add 3 routers (R1, R2, R3), 3 switches (S1, S2, S3), 3 PCs (PC-A, PC-B, PC-C), 2 servers (TACACS+, RADIUS).
+- Connect: R1 S0/0/0 to R2 S0/0/0, R2 S0/0/1 to R3 S0/0/0.
+- Connect: PC-A to S1 Fa0/1, S1 Fa0/2 to R1 G0/0; PC-B to S2 Fa0/2, TACACS+ to S2 Fa0/1, S2 Fa0/3 to R2 G0/0.
+- Connect: PC-C to S3 Fa0/1, RADIUS to S3 Fa0/2, S3 Fa0/3 to R3 G0/0.
+- Assign IPs to PCs and servers via Desktop > IP Configuration.
+
+Part 1: Local AAA Authentication for Console on R1
+1. Test Connectivity
+   PC-A>ping 192.168.2.2
+   PC-A>ping 192.168.3.2
+   PC-B>ping 192.168.3.2
+
+2. Configure Local Username
+   R1#conf t
+   R1(config)#username Admin1 secret admin1pa55
+   R1(config)#end
+
+3. Enable AAA
+   R1#conf t
+   R1(config)#aaa new-model
+   R1(config)#aaa authentication login default local
+   R1(config)#end
+
+4. Configure Console Line
+   R1#conf t
+   R1(config)#line console 0
+   R1(config-line)#login authentication default
+   R1(config-line)#end
+
+5. Verify Authentication
+   R1#exit
+   [Login with Username: Admin1, Password: admin1pa55]
+
+Part 2: Local AAA Authentication for VTY Lines on R1
+1. Configure Domain and Crypto Key
+   R1#conf t
+   R1(config)#ip domain-name ccnasecurity.com
+   R1(config)#crypto key generate rsa
+   [Name: R1.ccnasecurity.com, Modulus: 1024]
+   R1(config)#end
+
+2. Configure Named AAA List
+   R1#conf t
+   R1(config)#aaa authentication login SSH-LOGIN local
+   R1(config)#end
+
+3. Configure VTY Lines
+   R1#conf t
+   R1(config)#line vty 0 4
+   R1(config-line)#login authentication SSH-LOGIN
+   R1(config-line)#transport input ssh
+   R1(config-line)#end
+
+4. Verify SSH
+   PC-A>ssh -l Admin1 192.168.1.1
+   [Password: admin1pa55]
+
+Part 3: Server-Based AAA with TACACS+ on R2
+1. Configure Backup Local User
+   R2#conf t
+   R2(config)#username Admin2 secret admin2pa55
+   R2(config)#end
+
+2. Configure TACACS+ Server
+   R2#conf t
+   R2(config)#tacacs-server host 192.168.2.2
+   R2(config)#tacacs-server key tacacspa55
+   R2(config)#end
+
+3. Configure AAA for Console
+   R2#conf t
+   R2(config)#aaa new-model
+   R2(config)#aaa authentication login default group tacacs+ local
+   R2(config)#end
+
+4. Configure Console Line
+   R2#conf t
+   R2(config)#line console 0
+   R2(config-line)#login authentication default
+   R2(config-line)#end
+
+5. Verify Authentication
+   R2#exit
+   [Login with Username: Admin2, Password: admin2pa55]
+
+Part 4: Server-Based AAA with RADIUS on R3
+1. Configure Backup Local User
+   R3#conf t
+   R3(config)#username Admin3 secret admin3pa55
+   R3(config)#end
+
+2. Configure RADIUS Server
+   R3#conf t
+   R3(config)#radius-server host 192.168.3.2
+   R3(config)#radius-server key radiuspa55
+   R3(config)#end
+
+3. Configure AAA for Console
+   R3#conf t
+   R3(config)#aaa new-model
+   R3(config)#aaa authentication login default group radius local
+   R3(config)#end
+
+4. Configure Console Line
+   R3#conf t
+   R3(config)#line console 0
+   R3(config-line)#login authentication default
+   R3(config-line)#end
+
+5. Verify Authentication
+   R3#exit
+   [Login with Username: Admin3, Password: admin3pa55]
+
+Troubleshooting:
+- If ping fails: Verify IP assignments and OSPF (show ip route).
+- If AAA login fails: Check server IP and key (show run | section aaa).
+
+---
+
+PRACTICAL 3 - CONFIGURING EXTENDED ACLS - SCENARIO 1
+Topology: PC1, PC2 -> R1 -> Server
+IP Table: PC1 (172.22.34.66), PC2 (172.22.34.98), Server (172.22.34.62)
+
+Setup Topology in Packet Tracer:
+- Add 1 router (R1), 2 PCs (PC1, PC2), 1 server (Server).
+- Connect: PC1 to R1 G0/0, PC2 to R1 G0/1, Server to R1 G0/2.
+- Assign IPs: PC1 (172.22.34.66/27), PC2 (172.22.34.98/28), Server (172.22.34.62/27).
+
+Part 1: Extended Numbered ACL
+1. Configure ACL 100 on R1
+   R1#conf t
+   R1(config)#access-list 100 permit tcp 172.22.34.66 0.0.0.31 host 172.22.34.62 eq ftp
+   R1(config)#access-list 100 permit icmp 172.22.34.66 0.0.0.31 host 172.22.34.62
+   R1(config)#end
+
+2. Apply ACL
+   R1#conf t
+   R1(config)#interface gigabitEthernet 0/0
+   R1(config-if)#ip access-group 100 in
+   R1(config-if)#end
+
+3. Verify ACL
+   PC1>ping 172.22.34.62  [Successful]
+   PC1>ftp 172.22.34.62  [Username: cisco, Password: cisco]
+   ftp>quit
+   PC1>ping 172.22.34.98  [Unreachable]
+
+Part 2: Extended Named ACL
+1. Configure Named ACL on R1
+   R1#conf t
+   R1(config)#ip access-list extended HTTP_ONLY
+   R1(config-ext-nacl)#permit tcp 172.22.34.98 0.0.0.15 host 172.22.34.62 eq www
+   R1(config-ext-nacl)#permit icmp 172.22.34.98 0.0.0.15 host 172.22.34.62
+   R1(config-ext-nacl)#end
+
+2. Apply ACL
+   R1#conf t
+   R1(config)#interface gigabitEthernet 0/1
+   R1(config-if)#ip access-group HTTP_ONLY in
+   R1(config-if)#end
+
+3. Verify ACL
+   PC2>ping 172.22.34.62  [Successful]
+   PC2>ftp 172.22.34.62  [Fails]
+   [PC2 > Desktop > Web Browser: http://172.22.34.62]  [Successful]
+
+Troubleshooting:
+- If ping fails: Check IP and subnet mask (show ip interface brief).
+- If FTP/Web fails: Verify ACL syntax (show access-lists).
+
+---
+
+PRACTICAL 4 - CONFIGURING EXTENDED ACLS - SCENARIO 2
+Topology: PC0, PC1, Laptop -> Router -> Server0
+IP Table: PC0 (192.168.1.1), PC1 (192.168.17.1), Laptop (192.168.1.5), Server0 (192.168.19.1)
+
+Setup Topology in Packet Tracer:
+- Add 1 router (Router), 3 PCs (PC0, PC1, Laptop), 1 server (Server0).
+- Connect: PC0, PC1, Laptop to Router G0/0 via switch; Server0 to Router S0/1/1.
+- Assign IPs as per table.
+
+1. Configure ACL 100
+   Router#conf t
+   Router(config)#access-list 100 deny tcp host 192.168.1.1 host 192.168.19.1 eq www
+   Router(config)#access-list 100 deny tcp host 192.168.17.1 host 192.168.19.1 eq ftp
+   Router(config)#access-list 100 deny icmp host 192.168.1.5 host 192.168.19.1
+   Router(config)#access-list 100 permit ip any any
+   Router(config)#end
+
+2. Apply ACL
+   Router#conf t
+   Router(config)#interface Serial0/1/1
+   Router(config-if)#ip access-group 100 out
+   Router(config-if)#end
+
+3. Verify ACL
+   Router#show access-lists  [Expect 4 lines with denies and permit]
+   [PC0 > Desktop > Web Browser: http://192.168.19.1]  [Blocked]
+   PC1>ftp 192.168.19.1  [Blocked]
+   Laptop>ping 192.168.19.1  [Blocked]
+
+Troubleshooting:
+- If traffic isn’t blocked: Verify ACL application (show run | section interface).
+
+---
+
+PRACTICAL 5 - CONFIGURE IP ACLS TO MITIGATE ATTACKS
+Topology: PC-A -> R1 <-> R2 <-> R3 -> PC-C
+IP Table: PC-A (192.168.1.3), R2 Lo0 (192.168.2.1), PC-C (192.168.3.3), R1 S0/0/0 (10.1.1.1), R3 S0/0/1 (10.1.1.2)
+
+Setup Topology in Packet Tracer:
+- Add 3 routers (R1, R2, R3), 2 PCs (PC-A, PC-C).
+- Connect: R1 S0/0/0 to R2 S0/0/0, R2 S0/0/1 to R3 S0/0/1, PC-A to R1 G0/0, PC-C to R3 G0/1.
+- Assign IPs as per document.
+
+Part 1: Verify Connectivity
+1. From PC-A
+   PC-A>ping 192.168.3.3
+   PC-A>ssh -l SSHadmin 192.168.2.1  [Password: ciscosshpa55]
+
+2. From PC-C
+   PC-C>ping 192.168.1.3
+   PC-C>ssh -l SSHadmin 192.168.2.1  [Password: ciscosshpa55]
+   [PC-C > Desktop > Web Browser: http://192.168.1.3]
+
+Part 2: Secure Access to Routers
+1. Configure ACL 10
+   R1#conf t
+   R1(config)#access-list 10 permit host 192.168.3.3
+   R1(config)#line vty 0 4
+   R1(config-line)#access-class 10 in
+   R1(config-line)#end
+   [Repeat for R2 and R3]
+
+2. Verify Access
+   PC-C>ssh -l SSHadmin 192.168.2.1  [Successful]
+   PC-A>ssh -l SSHadmin 192.168.2.1  [Fails]
+
+Part 3: ACL 120 on R1
+1. Verify HTTPS Access
+   [PC-C > Desktop > Web Browser: https://192.168.1.3]
+
+2. Configure ACL 120
+   R1#conf t
+   R1(config)#access-list 120 permit udp any host 192.168.1.3 eq domain
+   R1(config)#access-list 120 permit tcp any host 192.168.1.3 eq smtp
+   R1(config)#access-list 120 permit tcp any host 192.168.1.3 eq ftp
+   R1(config)#access-list 120 deny tcp any host 192.168.1.3 eq 443
+   R1(config)#access-list 120 permit tcp host 192.168.3.3 host 10.1.1.1 eq 22
+   R1(config)#interface s0/0/0
+   R1(config-if)#ip access-group 120 in
+   R1(config-if)#end
+
+3. Verify HTTPS Blocked
+   [PC-C > Desktop > Web Browser: https://192.168.1.3]  [Fails]
+
+Part 4: Modify ACL 120
+1. Verify Ping Failure
+   PC-A>ping 192.168.2.1  [Fails]
+
+2. Modify ACL 120
+   R1#conf t
+   R1(config)#access-list 120 permit icmp any any echo-reply
+   R1(config)#access-list 120 permit icmp any any unreachable
+   R1(config)#access-list 120 deny icmp any any
+   R1(config)#access-list 120 permit ip any any
+   R1(config)#end
+
+3. Verify Ping Success
+   PC-A>ping 192.168.2.1  [Successful]
+
+Part 5: ACL 110 on R3
+1. Configure ACL 110
+   R3#conf t
+   R3(config)#access-list 110 permit ip 192.168.3.0 0.0.0.255 any
+   R3(config)#interface g0/1
+   R3(config-if)#ip access-group 110 in
+   R3(config-if)#end
+
+Part 6: ACL 100 on R3
+1. Configure ACL 100
+   R3#conf t
+   R3(config)#access-list 100 permit tcp 10.0.0.0 0.255.255.255 eq 22 host 192.168.3.3
+   R3(config)#access-list 100 deny ip 10.0.0.0 0.255.255.255 any
+   R3(config)#access-list 100 deny ip 172.16.0.0 0.15.255.255 any
+   R3(config)#access-list 100 deny ip 192.168.0.0 0.0.255.255 any
+   R3(config)#access-list 100 deny ip 127.0.0.0 0.255.255.255 any
+   R3(config)#access-list 100 deny ip 224.0.0.0 15.255.255.255 any
+   R3(config)#access-list 100 permit ip any any
+   R3(config)#interface s0/0/1
+   R3(config-if)#ip access-group 100 in
+   R3(config-if)#end
+
+2. Verify Functionality
+   PC-C>ping 192.168.1.3  [Fails]
+   PC-C>ssh -l SSHadmin 192.168.2.1  [Successful]
+
+Troubleshooting:
+- If SSH fails: Check ACL permits (show access-lists).
+- If ping succeeds unexpectedly: Verify ACL application direction.
+
+---
+
+PRACTICAL 6 - CONFIGURING IPv6 ACLs
+Topology: PC0, PC1 -> R1 <-> R2 <-> R3 -> Server
+IP Table: PC0 (2001:DB8:1:10::10), PC1 (2001:DB8:1:11::11), Server (2001:DB8:1:30::30)
+
+Setup Topology in Packet Tracer:
+- Add 3 routers (R1, R2, R3), 2 PCs (PC0, PC1), 1 server (Server).
+- Connect: PC0 to R1 G0/0, PC1 to R1 G0/1, R1 S0/0/0 to R2 S0/0/0, R2 S0/0/1 to R3 S0/0/0, Server to R3 G0/0.
+- Assign IPv6 addresses as per document.
+
+1. Configure IPv6 on Routers
+   R1:
+   R1#conf t
+   R1(config)#interface GigabitEthernet0/0
+   R1(config-if)#ipv6 address FE80::1 link-local
+   R1(config-if)#ipv6 address 2001:DB8:1:10::1/64
+   R1(config-if)#no shutdown
+   R1(config-if)#exit
+   R1(config)#interface GigabitEthernet0/1
+   R1(config-if)#ipv6 address FE80::1 link-local
+   R1(config-if)#ipv6 address 2001:DB8:1:11::1/64
+   R1(config-if)#no shutdown
+   R1(config-if)#exit
+   R1(config)#interface Serial0/0/0
+   R1(config-if)#ipv6 address FE80::1 link-local
+   R1(config-if)#ipv6 address 2001:DB8:1:1::1/64
+   R1(config-if)#no shutdown
+   R1(config-if)#end
+
+   R2:
+   R2#conf t
+   R2(config)#interface Serial0/0/0
+   R2(config-if)#ipv6 address FE80::2 link-local
+   R2(config-if)#ipv6 address 2001:DB8:1:1::2/64
+   R2(config-if)#no shutdown
+   R2(config-if)#exit
+   R2(config)#interface Serial0/0/1
+   R2(config-if)#ipv6 address FE80::2 link-local
+   R2(config-if)#ipv6 address 2001:DB8:1:2::2/64
+   R2(config-if)#no shutdown
+   R2(config-if)#end
+
+   R3:
+   R3#conf t
+   R3(config)#interface GigabitEthernet0/0
+   R3(config-if)#ipv6 address FE80::3 link-local
+   R3(config-if)#ipv6 address 2001:DB8:1:30::1/64
+   R3(config-if)#no shutdown
+   R3(config-if)#exit
+   R3(config)#interface Serial0/0/0
+   R3(config-if)#ipv6 address FE80::3 link-local
+   R3(config-if)#ipv6 address 2001:DB8:1:2::1/64
+   R3(config-if)#no shutdown
+   R3(config-if)#end
+
+2. Configure EIGRP for IPv6
+   R1:
+   R1#conf t
+   R1(config)#ipv6 unicast-routing
+   R1(config)#ipv6 router eigrp 1
+   R1(config-rtr)#no shutdown
+   R1(config-rtr)#eigrp router-id 1.1.1.1
+   R1(config-rtr)#exit
+   R1(config)#interface GigabitEthernet0/0
+   R1(config-if)#ipv6 eigrp 1
+   R1(config-if)#exit
+   R1(config)#interface GigabitEthernet0/1
+   R1(config-if)#ipv6 eigrp 1
+   R1(config-if)#exit
+   R1(config)#interface Serial0/0/0
+   R1(config-if)#ipv6 eigrp 1
+   R1(config-if)#end
+
+   R2:
+   R2#conf t
+   R2(config)#ipv6 unicast-routing
+   R2(config)#ipv6 router eigrp 1
+   R2(config-rtr)#no shutdown
+   R2(config-rtr)#eigrp router-id 2.2.2.2
+   R2(config-rtr)#exit
+   R2(config)#interface Serial0/0/0
+   R2(config-if)#ipv6 eigrp 1
+   R2(config-if)#exit
+   R2(config)#interface Serial0/0/1
+   R2(config-if)#ipv6 eigrp 1
+   R2(config-if)#end
+
+   R3:
+   R3#conf t
+   R3(config)#hostname R3
+   R3(config)#ipv6 unicast-routing
+   R3(config)#ipv6 router eigrp 1
+   R3(config-rtr)#no shutdown
+   R3(config-rtr)#eigrp router-id 3.3.3.3
+   R3(config-rtr)#exit
+   R3(config)#interface GigabitEthernet0/0
+   R3(config-if)#ipv6 eigrp 1
+   R3(config-if)#exit
+   R3(config)#interface Serial0/0/0
+   R3(config-if)#ipv6 eigrp 1
+   R3(config-if)#end
+
+3. Verify Setup
+   R1#ping 2001:DB8:1:10::10  [Expect 100% success]
+   R1#show running-config
+
+Part 1: IPv6 ACL on R1
+1. Configure BLOCK_HTTP ACL
+   R1#conf t
+   R1(config)#ipv6 access-list BLOCK_HTTP
+   R1(config-ipv6-acl)#deny tcp any host 2001:DB8:1:30::30 eq www
+   R1(config-ipv6-acl)#deny tcp any host 2001:DB8:1:30::30 eq 443
+   R1(config-ipv6-acl)#permit ipv6 any any
+   R1(config-ipv6-acl)#end
+
+2. Apply ACL
+   R1#conf t
+   R1(config)#interface GigabitEthernet0/1
+   R1(config-if)#ipv6 traffic-filter BLOCK_HTTP in
+   R1(config-if)#end
+
+3. Verify ACL
+   [PC1 > Desktop > Web Browser: http://2001:DB8:1:30::30]  [Fails]
+   [PC1 > Desktop > Web Browser: https://2001:DB8:1:30::30]  [Fails]
+
+Part 2: IPv6 ACL on R3
+1. Configure BLOCK_ICMP ACL
+   R3#conf t
+   R3(config)#ipv6 access-list BLOCK_ICMP
+   R3(config-ipv6-acl)#deny icmp any any
+   R3(config-ipv6-acl)#permit ipv6 any any
+   R3(config-ipv6-acl)#end
+
+2. Apply ACL
+   R3#conf t
+   R3(config)#interface GigabitEthernet0/0
+   R3(config-if)#ipv6 traffic-filter BLOCK_ICMP out
+   R3(config-if)#end
+
+3. Verify ACL
+   PC1>ping 2001:DB8:1:30::30  [Fails]
+   PC0>ping 2001:DB8:1:30::30  [Fails]
+   [PC1 > Desktop > Web Browser: http://2001:DB8:1:30::30]  [Succeeds]
+
+Troubleshooting:
+- If ping succeeds: Check ACL application (show ipv6 access-list).
+- If web access fails unexpectedly: Verify EIGRP routing (show ipv6 route).
+
+---
+
+PRACTICAL 7 - CONFIGURING A ZONE-BASED POLICY FIREWALL (ZPF)
+Topology: PC-A -> R1 <-> R2 <-> R3 -> PC-C
+IP Table: PC-A (192.168.1.3), R2 S0/0/1 (10.2.2.2), PC-C (192.168.3.3)
+
+Setup Topology in Packet Tracer:
+- Add 3 routers (R1, R2, R3), 2 PCs (PC-A, PC-C).
+- Connect: R1 S0/0/0 to R2 S0/0/0, R2 S0/0/1 to R3 S0/0/1, PC-A to R1 G0/0, PC-C to R3 G0/1.
+- Assign IPs as per document.
+
+Part 1: Verify Connectivity
+1. Ping PC-C from PC-A
+   PC-A>ping 192.168.3.3
+
+2. SSH to R2 from PC-C
+   PC-C>ssh -l SSHadmin 10.2.2.2  [Password: ciscosshpa55]
+
+3. Web Browser Access
+   [PC-C > Desktop > Web Browser: http://192.168.1.3]
+
+Part 2: Create Firewall Zones on R3
+1. Enable Security Package
+   R3#show version
+   R3#conf t
+   R3(config)#license boot module c1900 technology-package securityk9
+   [Accept EULA]
+   R3(config)#end
+   R3#copy run start
+   R3#reload
+   R3#show version  [Expect Securityk9 enabled]
+
+2. Create Internal Zone
+   R3#conf t
+   R3(config)#zone security IN-ZONE
+   R3(config-sec-zone)#exit
+
+3. Create External Zone
+   R3(config)#zone security OUT-ZONE
+   R3(config-sec-zone)#exit
+
+Part 3: Identify Traffic
+1. Create ACL 101
+   R3#conf t
+   R3(config)#access-list 101 permit ip 192.168.3.0 0.0.0.255 any
+   R3(config)#end
+
+2. Create Class-Map
+   R3#conf t
+   R3(config)#class-map type inspect match-all IN-NET-CLASS-MAP
+   R3(config-cmap)#match access-group 101
+   R3(config-cmap)#exit
+
+Part 4: Specify Firewall Policies
+1. Create Policy-Map
+   R3#conf t
+   R3(config)#policy-map type inspect IN-2-OUT-PMAP
+   R3(config-pmap)#class type inspect IN-NET-CLASS-MAP
+   R3(config-pmap-c)#inspect
+   R3(config-pmap-c)#exit
+   R3(config-pmap)#exit
+
+Part 5: Apply Firewall Policies
+1. Create Zone-Pair
+   R3#conf t
+   R3(config)#zone-pair security IN-2-OUT-ZPAIR source IN-ZONE destination OUT-ZONE
+   R3(config-sec-zone-pair)#service-policy type inspect IN-2-OUT-PMAP
+   R3(config-sec-zone-pair)#exit
+
+2. Assign Interfaces to Zones
+   R3(config)#interface g0/1
+   R3(config-if)#zone-member security IN-ZONE
+   R3(config-if)#exit
+   R3(config)#interface s0/0/1
+   R3(config-if)#zone-member security OUT-ZONE
+   R3(config-if)#exit
+
+3. Save Configuration
+   R3#copy run start
+
+Part 6: Test IN-ZONE to OUT-ZONE
+1. Ping PC-A from PC-C
+   PC-C>ping 192.168.1.3  [Succeeds]
+
+2. SSH to R2 from PC-C
+   PC-C>ssh -l Admin 10.2.2.2  [Password: ciscosshpa55]
+   R3#show policy-map type inspect zone-pair sessions  [Expect session details]
+
+3. Web Access from PC-C
+   [PC-C > Desktop > Web Browser: http://192.168.1.3]
+   R3#show policy-map type inspect zone-pair sessions  [Expect HTTP session]
+
+Part 7: Test OUT-ZONE to IN-ZONE
+1. Ping PC-C from PC-A
+   PC-A>ping 192.168.3.3  [Fails]
+
+2. Ping PC-C from R2
+   R2#ping 192.168.3.3  [Fails]
+
+3. Check Results
+   [Packet Tracer: Click 'Check Results' for 100% completion]
+
+Troubleshooting:
+- If ping succeeds from OUT-ZONE: Verify zone assignments (show run | section zone).
+- If web fails: Check policy-map (show policy-map type inspect).
+
+---
+
+PRACTICAL 8 - CONFIGURE IOS INTRUSION PREVENTION SYSTEM (IPS)
+Topology: PC-A -> R1 -> PC-C, Syslog Server (192.168.1.50)
+
+Setup Topology in Packet Tracer:
+- Add 1 router (R1), 2 PCs (PC-A, PC-C), 1 server (Syslog).
+- Connect: PC-A to R1 G0/0, PC-C to R1 G0/1, Syslog to R1 G0/0 via switch.
+- Assign IPs: Syslog (192.168.1.50).
+
+Part 1: Enable IOS IPS
+1. Enable Security Package
+   R1#show version
+   R1#conf t
+   R1(config)#license boot module c1900 technology-package securityk9
+   [Accept EULA]
+   R1(config)#end
+   R1#copy run start
+   R1#reload
+   R1#show version  [Expect Securityk9 enabled]
+
+2. Verify Connectivity
+   PC-C>ping 192.168.1.3
+   PC-A>ping 192.168.3.3
+
+3. Create IPS Directory
+   R1#mkdir ipsdir
+   [Press Enter]
+
+4. Configure IPS Storage Location
+   R1#conf t
+   R1(config)#ip ips config location flash:ipsdir
+   R1(config)#end
+
+5. Create IPS Rule
+   R1#conf t
+   R1(config)#ip ips name iosips
+   R1(config)#end
+
+6. Enable Logging
+   R1#conf t
+   R1(config)#ip ips notify log
+   R1(config)#service timestamps log datetime msec
+   R1(config)#logging host 192.168.1.50
+   R1(config)#end
+   R1#clock set 09:15:00 3 february 2023
+
+7. Configure Signature Categories
+   R1#conf t
+   R1(config)#ip ips signature-category
+   R1(config-ips-category)#category all
+   R1(config-ips-category-action)#retired true
+   R1(config-ips-category-action)#exit
+   R1(config-ips-category)#category ios_ips basic
+   R1(config-ips-category-action)#retired false
+   R1(config-ips-category-action)#exit
+   R1(config-ips-category)#exit
+   [Press Enter to confirm]
+
+8. Apply IPS Rule
+   R1#conf t
+   R1(config)#interface g0/1
+   R1(config-if)#ip ips iosips out
+   R1(config-if)#end
+
+Part 2: Modify Signature
+1. Modify Echo Request Signature
+   R1#conf t
+   R1(config)#ip ips signature-definition
+   R1(config-sigdef)#signature 2004 0
+   R1(config-sigdef-sig)#status
+   R1(config-sigdef-sig-status)#retired false
+   R1(config-sigdef-sig-status)#enabled true
+   R1(config-sigdef-sig-status)#exit
+   R1(config-sigdef-sig)#engine
+   R1(config-sigdef-sig-engine)#event-action produce-alert
+   R1(config-sigdef-sig-engine)#event-action deny-packet-inline
+   R1(config-sigdef-sig-engine)#exit
+   R1(config-sigdef-sig)#exit
+   R1(config-sigdef)#exit
+   [Press Enter to confirm]
+
+2. Verify IPS
+   R1#show ip ips all  [Expect iosips applied to G0/1 out]
+
+3. Test IPS
+   PC-C>ping 192.168.1.3  [Fails]
+
+4. View Syslog Messages
+   [Syslog Server > Desktop > Services > SYSLOG]  [Expect IPS alerts]
+
+Troubleshooting:
+- If ping succeeds: Verify signature status (show ip ips signatures).
+- If no syslog messages: Check logging config (show logging).
+
+---
+
+PRACTICAL 9 - PACKET TRACER - LAYER 2 SECURITY
+Topology: Central <-> SW-1, SW-2 <-> Hosts (C1, C2)
+
+Setup Topology in Packet Tracer:
+- Add 1 switch (Central), 2 switches (SW-1, SW-2), 2 PCs (C1, C2).
+- Connect: Central F0/23 to SW-1 F0/23, Central F0/24 to SW-2 F0/23, C1 to SW-A F0/1, C2 to SW-B F0/1.
+- Assign IPs to C1, C2 on same subnet (e.g., 192.168.1.0/24).
+
+Part 1: Configure Root Bridge
+1. Check Current Root
+   Central#show spanning-tree
+
+2. Set Central as Primary Root
+   Central#conf t
+   Central(config)#spanning-tree vlan 1 root primary
+   Central(config)#end
+
+3. Set SW-1 as Secondary Root
+   SW-1#conf t
+   SW-1(config)#spanning-tree vlan 1 root secondary
+   SW-1(config)#end
+
+4. Verify Configuration
+   Central#show spanning-tree  [Expect Central as root]
+
+Part 2: Protect Against STP Attacks
+1. Enable PortFast
+   SW-A#conf t
+   SW-A(config)#interface range f0/1 - 4
+   SW-A(config-if-range)#spanning-tree portfast
+   SW-A(config-if-range)#end
+   [Repeat for SW-B]
+
+2. Enable BPDU Guard
+   SW-A#conf t
+   SW-A(config)#interface range f0/1 - 4
+   SW-A(config-if-range)#spanning-tree bpduguard enable
+   SW-A(config-if-range)#end
+   [Repeat for SW-B]
+
+3. Enable Root Guard
+   SW-1#conf t
+   SW-1(config)#interface range f0/23 - 24
+   SW-1(config-if-range)#spanning-tree guard root
+   SW-1(config-if-range)#end
+   SW-2#conf t
+   SW-2(config)#interface range f0/23 - 24
+   SW-2(config-if-range)#spanning-tree guard root
+   SW-2(config-if-range)#end
+
+Part 3: Configure Port Security
+1. Configure Port Security
+   SW-A#conf t
+   SW-A(config)#interface range f0/1 - 22
+   SW-A(config-if-range)#switchport mode access
+   SW-A(config-if-range)#switchport port-security
+   SW-A(config-if-range)#switchport port-security maximum 2
+   SW-A(config-if-range)#switchport port-security violation shutdown
+   SW-A(config-if-range)#switchport port-security mac-address sticky
+   SW-A(config-if-range)#end
+   [Repeat for SW-B]
+
+2. Verify Port Security
+   SW-A#show port-security interface f0/1
+   C1>ping C2
+   SW-A#show port-security interface f0/1  [Expect MAC learned]
+
+3. Disable Unused Ports
+   SW-A#conf t
+   SW-A(config)#interface range f0/5 - 22
+   SW-A(config-if-range)#shutdown
+   SW-A(config-if-range)#end
+   [Repeat for SW-B]
+
+Troubleshooting:
+- If port shuts down: Check security violation (show port-security).
+- If STP fails: Verify root bridge (show spanning-tree).
+
+---
+
+PRACTICAL 10 - CONFIGURE AND VERIFY A SITE-TO-SITE IPSEC VPN
+Topology: PC-A -> R1 <-> R2 <-> R3 -> PC-C
+IP Table: PC-A (192.168.1.3), R1 S0/0/0 (10.1.1.2), R3 S0/0/1 (10.2.2.2), PC-C (192.168.3.3)
+
+Setup Topology in Packet Tracer:
+- Add 3 routers (R1, R2, R3), 2 PCs (PC-A, PC-C).
+- Connect: R1 S0/0/0 to R2 S0/0/0, R2 S0/0/1 to R3 S0/0/1, PC-A to R1 G0/0, PC-C to R3 G0/1.
+- Assign IPs as per document.
+
+Part 1: Configure IPsec on R1
+1. Test Connectivity
+   PC-A>ping 192.168.3.3
+
+2. Enable Security Package
+   R1#show version
+   R1#conf t
+   R1(config)#license boot module c1900 technology-package securityk9
+   [Accept EULA]
+   R1(config)#end
+   R1#copy run start
+   R1#reload
+   R1#show version  [Expect Securityk9 enabled]
+
+3. Configure ACL 110
+   R1#conf t
+   R1(config)#access-list 110 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+   R1(config)#end
+
+4. Configure IKE Phase 1
+   R1#conf t
+   R1(config)#crypto isakmp policy 10
+   R1(config-isakmp)#encryption aes 256
+   R1(config-isakmp)#authentication pre-share
+   R1(config-isakmp)#group 5
+   R1(config-isakmp)#exit
+   R1(config)#crypto isakmp key vpnpa55 address 10.2.2.2
+   R1(config)#end
+
+5. Configure IKE Phase 2
+   R1#conf t
+   R1(config)#crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+   R1(config)#crypto map VPN-MAP 10 ipsec-isakmp
+   R1(config-crypto-map)#description VPN connection to R3
+   R1(config-crypto-map)#set peer 10.2.2.2
+   R1(config-crypto-map)#set transform-set VPN-SET
+   R1(config-crypto-map)#match address 110
+   R1(config-crypto-map)#exit
+
+6. Apply Crypto Map
+   R1(config)#interface s0/0/0
+   R1(config-if)#crypto map VPN-MAP
+   R1(config-if)#end
+
+Part 2: Configure IPsec on R3
+1. Enable Security Package
+   R3#show version
+   R3#conf t
+   R3(config)#license boot module c1900 technology-package securityk9
+   [Accept EULA]
+   R3(config)#end
+   R3#copy run start
+   R3#reload
+   R3#show version  [Expect Securityk9 enabled]
+
+2. Configure ACL 110
+   R3#conf t
+   R3(config)#access-list 110 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+   R3(config)#end
+
+3. Configure IKE Phase 1
+   R3#conf t
+   R3(config)#crypto isakmp policy 10
+   R3(config-isakmp)#encryption aes 256
+   R3(config-isakmp)#authentication pre-share
+   R3(config-isakmp)#group 5
+   R3(config-isakmp)#exit
+   R3(config)#crypto isakmp key vpnpa55 address 10.1.1.2
+   R3(config)#end
+
+4. Configure IKE Phase 2
+   R3#conf t
+   R3(config)#crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+   R3(config)#crypto map VPN-MAP 10 ipsec-isakmp
+   R3(config-crypto-map)#description VPN connection to R1
+   R3(config-crypto-map)#set peer 10.1.1.2
+   R3(config-crypto-map)#set transform-set VPN-SET
+   R3(config-crypto-map)#match address 110
+   R3(config-crypto-map)#exit
+
+5. Apply Crypto Map
+   R3(config)#interface s0/0/1
+   R3(config-if)#crypto map VPN-MAP
+   R3(config-if)#end
+
+Part 3: Verify IPsec VPN
+1. Verify Before Traffic
+   R1#show crypto ipsec sa  [Expect 0 packets]
+
+2. Generate Interesting Traffic
+   PC-A>ping 192.168.3.3
+
+3. Verify After Traffic
+   R1#show crypto ipsec sa  [Expect >0 packets]
+
+4. Generate Uninteresting Traffic
+   PC-A>ping 192.168.2.1
+
+5. Verify Tunnel
+   R1#show crypto ipsec sa  [Expect no change for uninteresting traffic]
+
+Troubleshooting:
+- If VPN fails: Check peer IPs and keys (show crypto isakmp sa).
+- If ping fails: Verify ACL (show access-lists).
+
+---
+END OF DOCUMENT
